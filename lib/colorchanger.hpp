@@ -7,6 +7,8 @@
  * (at your option) any later version.
  */
 
+#include "lcms.h"
+
 class ColorChanger {
 public:
   static const int size = 256;
@@ -134,6 +136,45 @@ public:
 
 #endif /* #ifndef SWIG */
 
+  void lcms_test() {
+    cmsHPROFILE hInProfile, hOutProfile;
+    cmsHTRANSFORM hTransform;
+    int i;
+    BYTE RGB[3];
+    cmsCIELab Lab[5];
+    
+    
+    hInProfile  = cmsCreateLabProfile(NULL);
+    hOutProfile = cmsCreate_sRGBProfile();
+    
+    
+    hTransform = cmsCreateTransform(hInProfile,
+                                    TYPE_Lab_DBL,
+                                    hOutProfile,
+                                    TYPE_RGB_8,
+                                    INTENT_PERCEPTUAL, 0);
+    
+    
+    for (i=0; i < 5; i++)
+      {
+        // Fill in the Float Lab
+        
+        Lab[i].L = 10.0;
+        Lab[i].a = 4.1;
+        Lab[i].b = 2.2;
+        
+        cmsDoTransform(hTransform, Lab, RGB, 1);
+        
+        printf("RGB result: %d %d %d\n", (int)RGB[0], (int)RGB[1], (int)RGB[2]);
+        //.. Do whatsever with the RGB values in RGB[3]
+      }
+    
+    cmsDeleteTransform(hTransform);
+    cmsCloseProfile(hInProfile);
+    cmsCloseProfile(hOutProfile);
+  }
+
+
   void render(PyObject * arr)
   {
     uint8_t * pixels;
@@ -166,6 +207,7 @@ public:
         p[0] = h; p[1] = s; p[2] = v; p[3] = 255;
       }
     }
+    lcms_test();
   }
 
   PyObject* pick_color_at(float x_, float y_)

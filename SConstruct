@@ -30,6 +30,7 @@ env = Environment(ENV=os.environ, options=opts)
 opts.Update(env)
 
 env.ParseConfig('pkg-config --cflags --libs glib-2.0')
+env.ParseConfig('pkg-config --cflags --libs lcms')
 
 env.Append(CXXFLAGS=' -Wall -Wno-sign-compare -Wno-write-strings')
 #env.Append(CXXFLAGS=' -O0', LINKFLAGS=' -O0')
