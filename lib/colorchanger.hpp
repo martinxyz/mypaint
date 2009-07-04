@@ -136,27 +136,13 @@ public:
 
 #endif /* #ifndef SWIG */
 
+  /*
   void lcms_test() {
-    cmsHPROFILE hInProfile, hOutProfile;
-    cmsHTRANSFORM hTransform;
-    int i;
-    BYTE RGB[3];
-    cmsCIELab Lab[5];
-    
-    
-    hInProfile  = cmsCreateLabProfile(NULL);
-    hOutProfile = cmsCreate_sRGBProfile();
-    
-    
-    hTransform = cmsCreateTransform(hInProfile,
-                                    TYPE_Lab_DBL,
-                                    hOutProfile,
-                                    TYPE_RGB_8,
-                                    INTENT_PERCEPTUAL, 0);
-    
     
     for (i=0; i < 5; i++)
       {
+
+
         // Fill in the Float Lab
         
         Lab[i].L = 10.0;
@@ -169,10 +155,8 @@ public:
         //.. Do whatsever with the RGB values in RGB[3]
       }
     
-    cmsDeleteTransform(hTransform);
-    cmsCloseProfile(hInProfile);
-    cmsCloseProfile(hOutProfile);
   }
+  */
 
 
   void render(PyObject * arr)
@@ -181,6 +165,21 @@ public:
     int x, y;
     float h, s, v;
 
+
+    cmsHPROFILE hInProfile, hOutProfile;
+    cmsHTRANSFORM hTransform;
+    int i;
+    BYTE RGB[3];
+    cmsCIELab Lab[5];
+    cmsCIELCh LCh[5];
+    hInProfile  = cmsCreateLabProfile(NULL);
+    hOutProfile = cmsCreate_sRGBProfile();
+    hTransform = cmsCreateTransform(hInProfile,
+                                    TYPE_Lab_DBL,
+                                    hOutProfile,
+                                    TYPE_RGB_8,
+                                    INTENT_PERCEPTUAL, 0);
+    
     assert(PyArray_ISCARRAY(arr));
     assert(PyArray_NDIM(arr) == 3);
     assert(PyArray_DIM(arr, 0) == size);
@@ -199,15 +198,34 @@ public:
     for (y=0; y<size; y++) {
       for (x=0; x<size; x++) {
 
+        /*
         get_hsv(h, s, v, pre);
         pre++;
-
         hsv_to_rgb_range_one (&h, &s, &v);
+        */
         uint8_t * p = pixels + 4*(y*size + x);
-        p[0] = h; p[1] = s; p[2] = v; p[3] = 255;
+        Lab[i].L = 80.0;
+        Lab[i].a = -130.0*(x-size/2)/size;
+        Lab[i].b = -130.0*(y-size/2)/size;
+        
+        /*
+        cmsCIELCh LCh[1];
+        LCh[i].L = 30.0;
+        //LCh[i].C = 50.0;
+        LCh[i].C = 100.0*x/size;
+        LCh[i].h = 360.0*y/size;
+
+        cmsLCh2Lab(Lab, LCh);
+        */
+
+        cmsDoTransform(hTransform, Lab, p, 1);
+        p[3] = 255;
       }
     }
-    lcms_test();
+
+    cmsDeleteTransform(hTransform);
+    cmsCloseProfile(hInProfile);
+    cmsCloseProfile(hOutProfile);
   }
 
   PyObject* pick_color_at(float x_, float y_)
