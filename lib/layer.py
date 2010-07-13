@@ -73,11 +73,30 @@ class Layer:
         dst.strokes.extend(self.strokes)
         for tx, ty in dst.surface.get_tiles():
             surf = dst.surface.get_tile_memory(tx, ty, readonly=False)
-            surf[:,:,:] = dst.effective_opacity * surf[:,:,:]
+            surf[:,:,:] *= dst.effective_opacity
         for tx, ty in src.surface.get_tiles():
             surf = dst.surface.get_tile_memory(tx, ty, readonly=False)
-            src.surface.composite_tile_over(surf, tx, ty, opacity=self.effective_opacity)
+            src.surface.composite_tile_over(surf, tx, ty, opacity=src.effective_opacity)
         dst.opacity = 1.0
+
+    def merge_step(self, dst, step):
+        """
+        Merge this layer partially into dst, modifying both src and dst.
+        """
+        # We must respect layer visibility, because saving a
+        # transparent PNG just calls this function for each layer.
+        assert step >= 0 and step <= 1
+        src = self
+        print '.'
+        for tx, ty in src.surface.get_tiles():
+            # modify dst
+            surf = dst.surface.get_tile_memory(tx, ty, readonly=False)
+            src.surface.composite_tile_over(surf, tx, ty, opacity=src.effective_opacity*step)
+
+            # modify src
+            surf = src.surface.get_tile_memory(tx, ty, readonly=False)
+            surf[:,:,:] *= 1.0 - step
+
 
     def get_stroke_info_at(self, x, y):
         x, y = int(x), int(y)

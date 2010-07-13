@@ -46,6 +46,7 @@ class Document():
         self.stroke_observers = [] # callback arguments: stroke, brush (brush is a temporary read-only convenience object)
         self.doc_observers = []
         self.clear(True)
+        self.merge_time = 0.0
 
     def call_doc_observers(self):
         for f in self.doc_observers:
@@ -104,13 +105,25 @@ class Document():
             self.snapshot_before_stroke = self.layer.save_snapshot()
         self.stroke.record_event(dtime, x, y, pressure)
 
+
         l = self.layer
         l.surface.begin_atomic()
         split = self.brush.stroke_to (l.surface, x, y, pressure, dtime)
         l.surface.end_atomic()
 
+        self.merge_time += dtime
+        T = 0.1
+        while self.merge_time > T:
+            self.merge_time -= T
+            self.merge_step(0.03)
+
         if split:
             self.split_stroke()
+
+    def merge_step(self, step):
+        if len(self.layers) < 2:
+            return
+        self.layers[1].merge_step(self.layers[0], step)
 
     def straight_line(self, src, dst):
         self.split_stroke()

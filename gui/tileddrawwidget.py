@@ -178,7 +178,8 @@ class TiledDrawWidget(gtk.DrawingArea):
         if pressure:
             self.last_painting_pos = x, y
 
-        self.doc.stroke_to(dtime, x, y, pressure)
+        self.doc.stroke_to(dtime, x, y, pressure) # TODO: add interrupt_at?
+        self.queue_draw()
 
     def button_press_cb(self, win, event):
         if (event.state & gdk.SHIFT_MASK) and self.last_painting_pos:
