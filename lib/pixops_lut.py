@@ -39,3 +39,5 @@ def table2const(t, name):
 
 print table2const(srgb2lin, 'srgb2lin')
 print table2const(lin2srgb, 'lin2srgb')
+print table2const(srgb2lin/4, 'srgb2lin_div4')
+print table2const((srgb2lin/4)[::4], 'srgb2lin_13bit_div4')
