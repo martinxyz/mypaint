@@ -60,17 +60,10 @@ void tile_downscale_rgba16(PyObject *src, PyObject *dst, int dst_x, int dst_y) {
     uint16_t * dst_p = (uint16_t*)(dst_arr->data + (y+dst_y)*dst_arr->strides[0]);
     dst_p += 4*dst_x;
     for(int x=0; x<TILE_SIZE/2; x++) {
-      /*
-      dst_p[0] = lin2srgb[srgb2lin_div4[src_p[0]] + srgb2lin_div4[(src_p+4)[0]] + srgb2lin_div4[(src_p+4*TILE_SIZE)[0]] + srgb2lin_div4[(src_p+4*TILE_SIZE+4)[0]]];
-      dst_p[1] = lin2srgb[srgb2lin_div4[src_p[1]] + srgb2lin_div4[(src_p+4)[1]] + srgb2lin_div4[(src_p+4*TILE_SIZE)[1]] + srgb2lin_div4[(src_p+4*TILE_SIZE+4)[1]]];
-      dst_p[2] = lin2srgb[srgb2lin_div4[src_p[2]] + srgb2lin_div4[(src_p+4)[2]] + srgb2lin_div4[(src_p+4*TILE_SIZE)[2]] + srgb2lin_div4[(src_p+4*TILE_SIZE+4)[2]]];
-      dst_p[3] = lin2srgb[srgb2lin_div4[src_p[3]] + srgb2lin_div4[(src_p+4)[3]] + srgb2lin_div4[(src_p+4*TILE_SIZE)[3]] + srgb2lin_div4[(src_p+4*TILE_SIZE+4)[3]]];
-      */
-      dst_p[0] = lin2srgb[srgb2lin_13bit_div4[(src_p[0])/4] + srgb2lin_13bit_div4[((src_p+4)[0])/4] + srgb2lin_13bit_div4[((src_p+4*TILE_SIZE)[0])/4] + srgb2lin_13bit_div4[((src_p+4*TILE_SIZE+4)[0])/4]];
-      dst_p[1] = lin2srgb[srgb2lin_13bit_div4[(src_p[1])/4] + srgb2lin_13bit_div4[((src_p+4)[1])/4] + srgb2lin_13bit_div4[((src_p+4*TILE_SIZE)[1])/4] + srgb2lin_13bit_div4[((src_p+4*TILE_SIZE+4)[1])/4]];
-      dst_p[2] = lin2srgb[srgb2lin_13bit_div4[(src_p[2])/4] + srgb2lin_13bit_div4[((src_p+4)[2])/4] + srgb2lin_13bit_div4[((src_p+4*TILE_SIZE)[2])/4] + srgb2lin_13bit_div4[((src_p+4*TILE_SIZE+4)[2])/4]];
-      dst_p[3] = lin2srgb[srgb2lin_13bit_div4[(src_p[3])/4] + srgb2lin_13bit_div4[((src_p+4)[3])/4] + srgb2lin_13bit_div4[((src_p+4*TILE_SIZE)[3])/4] + srgb2lin_13bit_div4[((src_p+4*TILE_SIZE+4)[3])/4]];
-      //dst_p[3] = src_p[3]/4 + (src_p+4)[3]/4 + (src_p+4*TILE_SIZE)[3]/4 + (src_p+4*TILE_SIZE+4)[3]/4;
+      dst_p[0] = lin2srgb[srgb2lin_10bit_div4[(src_p[0])/32] + srgb2lin_10bit_div4[((src_p+4)[0])/32] + srgb2lin_10bit_div4[((src_p+4*TILE_SIZE)[0])/32] + srgb2lin_10bit_div4[((src_p+4*TILE_SIZE+4)[0])/32]];
+      dst_p[1] = lin2srgb[srgb2lin_10bit_div4[(src_p[1])/32] + srgb2lin_10bit_div4[((src_p+4)[1])/32] + srgb2lin_10bit_div4[((src_p+4*TILE_SIZE)[1])/32] + srgb2lin_10bit_div4[((src_p+4*TILE_SIZE+4)[1])/32]];
+      dst_p[2] = lin2srgb[srgb2lin_10bit_div4[(src_p[2])/32] + srgb2lin_10bit_div4[((src_p+4)[2])/32] + srgb2lin_10bit_div4[((src_p+4*TILE_SIZE)[2])/32] + srgb2lin_10bit_div4[((src_p+4*TILE_SIZE+4)[2])/32]];
+      dst_p[3] = lin2srgb[srgb2lin_10bit_div4[(src_p[3])/32] + srgb2lin_10bit_div4[((src_p+4)[3])/32] + srgb2lin_10bit_div4[((src_p+4*TILE_SIZE)[3])/32] + srgb2lin_10bit_div4[((src_p+4*TILE_SIZE+4)[3])/32]];
       src_p += 8;
       dst_p += 4;
     }
