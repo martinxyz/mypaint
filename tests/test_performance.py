@@ -4,7 +4,7 @@ import sys, os, tempfile, subprocess, gc, cProfile
 from time import time, sleep
 
 import gtk, glib
-from pylab import math, linspace, loadtxt
+from pylab import math, linspace, loadtxt, zeros, randint
 
 os.chdir(os.path.dirname(sys.argv[0]))
 sys.path.insert(0, '..')
@@ -265,6 +265,25 @@ def memory_after_startup(gui):
     print 'result =', open('/proc/self/statm').read().split()[0]
     if False:
         yield None # just to make this function iterator
+
+@nogui_test
+def tile_downscale():
+    from lib import mypaintlib
+    N = mypaintlib.TILE_SIZE
+    src = randint(0, 1<<15, (N, N, 4)).astype('uint16')
+    #src[:,:,:] = 0
+    dst = zeros((N, N, 4), 'uint16')
+    for i in xrange(10):
+        mypaintlib.tile_downscale_rgba16(src, dst, 0, N/2)
+    yield start_measurement
+    # Obviously, this is not a realistic memory access pattern.
+    # paint_zoomed_out_5x() is the realistic test, but this one is faster.
+    for i in xrange(1000):
+        mypaintlib.tile_downscale_rgba16(src, dst, 0, 0)
+        mypaintlib.tile_downscale_rgba16(src, dst, 0, N/2)
+        mypaintlib.tile_downscale_rgba16(src, dst, 0, N/2)
+        mypaintlib.tile_downscale_rgba16(src, dst, N/2, N/2)
+    yield stop_measurement
 
 if __name__ == '__main__':
     if len(sys.argv) == 4 and sys.argv[1] == 'SINGLE_TEST_RUN':
