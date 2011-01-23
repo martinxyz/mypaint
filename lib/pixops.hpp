@@ -7,6 +7,7 @@
  * (at your option) any later version.
  */
 
+#include "lut.h"
 // downscale a tile to half its size using bilinear interpolation
 // used mainly for generating background mipmaps
 void tile_downscale_rgb16(PyObject *src, PyObject *dst, int dst_x, int dst_y) {
@@ -28,9 +29,9 @@ void tile_downscale_rgb16(PyObject *src, PyObject *dst, int dst_x, int dst_y) {
     uint16_t * dst_p = (uint16_t*)(dst_arr->data + (y+dst_y)*dst_arr->strides[0]);
     dst_p += 3*dst_x;
     for(int x=0; x<TILE_SIZE/2; x++) {
-      dst_p[0] = src_p[0]/4 + (src_p+3)[0]/4 + (src_p+3*TILE_SIZE)[0]/4 + (src_p+3*TILE_SIZE+3)[0]/4;
-      dst_p[1] = src_p[1]/4 + (src_p+3)[1]/4 + (src_p+3*TILE_SIZE)[1]/4 + (src_p+3*TILE_SIZE+3)[1]/4;
-      dst_p[2] = src_p[2]/4 + (src_p+3)[2]/4 + (src_p+3*TILE_SIZE)[2]/4 + (src_p+3*TILE_SIZE+3)[2]/4;
+      dst_p[0] = lin2srgb[srgb2lin[src_p[0]]/4 + srgb2lin[(src_p+3)[0]]/4 + srgb2lin[(src_p+3*TILE_SIZE)[0]]/4 + srgb2lin[(src_p+3*TILE_SIZE+3)[0]]/4];
+      dst_p[1] = lin2srgb[srgb2lin[src_p[1]]/4 + srgb2lin[(src_p+3)[1]]/4 + srgb2lin[(src_p+3*TILE_SIZE)[1]]/4 + srgb2lin[(src_p+3*TILE_SIZE+3)[1]]/4];
+      dst_p[2] = lin2srgb[srgb2lin[src_p[2]]/4 + srgb2lin[(src_p+3)[2]]/4 + srgb2lin[(src_p+3*TILE_SIZE)[2]]/4 + srgb2lin[(src_p+3*TILE_SIZE+3)[2]]/4];
       src_p += 6;
       dst_p += 3;
     }
@@ -59,10 +60,11 @@ void tile_downscale_rgba16(PyObject *src, PyObject *dst, int dst_x, int dst_y) {
     uint16_t * dst_p = (uint16_t*)(dst_arr->data + (y+dst_y)*dst_arr->strides[0]);
     dst_p += 4*dst_x;
     for(int x=0; x<TILE_SIZE/2; x++) {
-      dst_p[0] = src_p[0]/4 + (src_p+4)[0]/4 + (src_p+4*TILE_SIZE)[0]/4 + (src_p+4*TILE_SIZE+4)[0]/4;
-      dst_p[1] = src_p[1]/4 + (src_p+4)[1]/4 + (src_p+4*TILE_SIZE)[1]/4 + (src_p+4*TILE_SIZE+4)[1]/4;
-      dst_p[2] = src_p[2]/4 + (src_p+4)[2]/4 + (src_p+4*TILE_SIZE)[2]/4 + (src_p+4*TILE_SIZE+4)[2]/4;
-      dst_p[3] = src_p[3]/4 + (src_p+4)[3]/4 + (src_p+4*TILE_SIZE)[3]/4 + (src_p+4*TILE_SIZE+4)[3]/4;
+      dst_p[0] = lin2srgb[srgb2lin[src_p[0]]/4 + srgb2lin[(src_p+4)[0]]/4 + srgb2lin[(src_p+4*TILE_SIZE)[0]]/4 + srgb2lin[(src_p+4*TILE_SIZE+4)[0]]/4];
+      dst_p[1] = lin2srgb[srgb2lin[src_p[1]]/4 + srgb2lin[(src_p+4)[1]]/4 + srgb2lin[(src_p+4*TILE_SIZE)[1]]/4 + srgb2lin[(src_p+4*TILE_SIZE+4)[1]]/4];
+      dst_p[2] = lin2srgb[srgb2lin[src_p[2]]/4 + srgb2lin[(src_p+4)[2]]/4 + srgb2lin[(src_p+4*TILE_SIZE)[2]]/4 + srgb2lin[(src_p+4*TILE_SIZE+4)[2]]/4];
+      dst_p[3] = lin2srgb[srgb2lin[src_p[3]]/4 + srgb2lin[(src_p+4)[3]]/4 + srgb2lin[(src_p+4*TILE_SIZE)[3]]/4 + srgb2lin[(src_p+4*TILE_SIZE+4)[3]]/4];
+      //dst_p[3] = src_p[3]/4 + (src_p+4)[3]/4 + (src_p+4*TILE_SIZE)[3]/4 + (src_p+4*TILE_SIZE+4)[3]/4;
       src_p += 8;
       dst_p += 4;
     }
