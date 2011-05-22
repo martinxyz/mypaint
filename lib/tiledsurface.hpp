@@ -102,6 +102,28 @@ public:
     return rgba_p;
   }
 
+  uint16_t * get_bg_memory(int tx, int ty) {
+    if (PyErr_Occurred()) return NULL;
+    PyObject* rgb = PyObject_CallMethod(self, "get_bg_memory", "(ii)", tx, ty);
+    if (rgb == NULL) {
+      printf("Python exception during get_bg_memory()!\n");
+      return NULL;
+    }
+#ifdef HEAVY_DEBUG
+       assert(PyArray_NDIM(rgb) == 3);
+       assert(PyArray_DIM(rgb, 0) == TILE_SIZE);
+       assert(PyArray_DIM(rgb, 1) == TILE_SIZE);
+       assert(PyArray_DIM(rgb, 2) == 3);
+       assert(PyArray_ISCARRAY(rgb));
+       assert(PyArray_TYPE(rgb) == NPY_UINT16);
+#endif
+    // tiledsurface.py will keep a reference in its tiledict, at least until the final end_atomic()
+    Py_DECREF(rgb);
+    uint16_t * rgb_p = (uint16_t*)((PyArrayObject*)rgb)->data;
+    // OPTIMIZE: maybe should cache result, too
+    return rgb_p;
+  }
+
   void render_dab_mask (uint16_t * mask,
                         float x, float y,
                         float radius,
@@ -217,7 +239,7 @@ public:
                  float opaque, float hardness = 0.5,
                  float color_a = 1.0,
                  float aspect_ratio = 1.0, float angle = 0.0,
-                 float lock_alpha = 0.0
+                 float lock_alpha = 0.0, float overlay = 0.0
                  ) {
 
     opaque = CLAMP(opaque, 0.0, 1.0);
@@ -241,6 +263,7 @@ public:
     float normal = 1.0;
 
     normal *= 1.0-lock_alpha;
+    normal *= 1.0-overlay;
 
 	if (aspect_ratio<1.0) aspect_ratio=1.0;
 
@@ -287,6 +310,16 @@ public:
         if (lock_alpha) {
           draw_dab_pixels_BlendMode_LockAlpha(mask, rgba_p,
                                               color_r_, color_g_, color_b_, lock_alpha*opaque*(1<<15));
+        }
+
+        if (overlay) {
+          uint16_t * bg_rgb_p = get_bg_memory(tx, ty);
+          if (!bg_rgb_p) {
+            printf("Python exception during draw_dab() get_bg_memory!\n");
+            return true;
+          }
+          draw_dab_pixels_BlendMode_Overlay(mask, rgba_p, bg_rgb_p,
+                                            color_r_, color_g_, color_b_, overlay*opaque*(1<<15));
         }
       }
     }

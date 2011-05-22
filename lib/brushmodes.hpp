@@ -160,3 +160,114 @@ void get_color_pixels_accumulate (uint16_t * mask,
   *sum_a += a;
 };
 
+// Overlay blending mode (or something similar)
+//
+void draw_dab_pixels_BlendMode_Overlay (uint16_t * mask,
+                                        uint16_t * rgba,
+                                        uint16_t * bg,
+                                        uint16_t color_r,
+                                        uint16_t color_g,
+                                        uint16_t color_b,
+                                        uint16_t opacity) {
+
+  uint16_t color[3];
+  color[0] = color_r;
+  color[1] = color_g;
+  color[2] = color_b;
+
+  while (1) {
+    for (; mask[0]; mask++, rgba+=4, bg+=3) {
+      uint32_t opa_a = mask[0]*(uint32_t)opacity/(1<<15);
+
+      uint32_t c[3];
+
+      for (int i=0; i<3;i++) {
+        assert(rgba[i] <= rgba[3]);
+        assert(opa_a <= (1<<15));
+        
+        /* old version (premultiplied alpha, locked alpha only)
+        int32_t slope = 2*((int32_t)color[i])-(1<<15);
+        
+        uint16_t tmp;
+        if (rgba[i] < rgba[3]/2) {
+          // multiply
+          tmp = rgba[i];
+        } else {
+          // screen
+          tmp = rgba[3] - rgba[i];
+        }
+        rgba[i] += opa_a * tmp / (1<<15) * slope / (1<<15);
+
+        assert(rgba[i] <= rgba[3]);
+        */
+
+        // composite to get visible image
+        c[i] = (uint32_t)rgba[i] + ((1<<15) - rgba[3])*bg[i] / (1<<15);
+        assert(c[i] <= (1<<15));
+
+        // apply effect to visible image
+        int64_t slope = (int64_t)2*color[i]-(1<<15);
+        uint16_t tmp;
+        if (c[i] < (1<<15)/2) {
+          // multiply
+          tmp = c[i]; // range 0..(1<<15)/2-1
+        } else {
+          // screen
+          tmp = (1<<15) - c[i]; // range 0..(1<<15)/2
+        }
+        int64_t change = tmp * slope / (1<<15);
+        int64_t tmp2 = c[i] + (int64_t)opa_a * change / (1<<15);
+        assert(tmp2 <= (1<<15));
+        assert(tmp2 >= 0);
+        c[i] = CLAMP(tmp2, 0, (1<<15));
+      }
+      
+      uint16_t final_alpha = rgba[3];
+      for (int i=0; i<3;i++) {
+        int32_t color_change = (int32_t)c[i] - bg[i];
+        uint16_t minimal_alpha;
+        if (color_change > 0) {
+          minimal_alpha = (int64_t)color_change*(1<<15) / ((1<<15) - bg[i]);
+        } else if (color_change < 0) {
+          minimal_alpha = (int64_t)-color_change*(1<<15) / bg[i];
+        } else {
+          // color_change == 0
+          minimal_alpha = 0;
+        }
+        final_alpha = MAX(final_alpha, minimal_alpha);
+        assert(final_alpha <= (1<<15));
+      }
+      rgba[3] = final_alpha;
+      if (final_alpha > 0) {
+        for (int i=0; i<3;i++) {
+          int32_t color_change = (int32_t)c[i] - bg[i];
+          //int64_t res = bg[i] + (int64_t)color_change*(1<<15) / final_alpha;
+          // premultiplied with final_alpha
+          int64_t res = (uint32_t)bg[i]*final_alpha/(1<<15) + (int64_t)color_change;
+          assert(res <= (1<<15));
+          assert(res >= -1);
+          res = CLAMP(res, 0, (1<<15)); // fixme: better handling of rounding errors maybe?
+          // Also, the result ist often exact zero or exact (1<<15), why are we even 
+          // (re)calculating those...?
+          rgba[i] = res;
+          assert(rgba[i] <= rgba[3]);
+        }
+      }
+
+      /*
+      // todo: back-calculate alpha in the inner loop
+      // lazy coder's version: just maximize alpha
+      rgba[0] = c[0];
+      rgba[1] = c[1];
+      rgba[2] = c[2];
+      rgba[3] = (1<<15);
+      */
+        
+    }
+    if (!mask[1]) break;
+    rgba += mask[1];
+    bg += mask[1] / 4 * 3; // fixme
+    mask += 2;
+  }
+};
+

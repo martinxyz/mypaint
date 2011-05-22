@@ -175,10 +175,32 @@ class Document():
             self.snapshot_before_stroke = self.layer.save_snapshot()
         self.stroke.record_event(dtime, x, y, pressure, xtilt,ytilt)
 
-        l = self.layer
-        l.surface.begin_atomic()
-        split = self.brush.stroke_to (l.surface, x, y, pressure, xtilt,ytilt, dtime)
-        l.surface.end_atomic()
+        s = self.layer.surface
+        s.begin_atomic()
+
+        # prepare to composite B on demand (the image below the current layer)
+        layers_below = [] 
+        for l2 in self.layers:
+            if l2 is self.layer:
+                break
+            layers_below.append(l2)
+        background = self.background
+        B = {}
+
+        def get_bg_memory(tx, ty): # test implementation for prototyping purpose
+            print 'get_bg_memory', tx, ty
+            if (tx, ty) not in B:
+                dst = numpy.empty((N, N, 3), dtype='uint16')
+                background.blit_tile_into(dst, tx, ty, mipmap_level=0)
+                for layer in layers_below:
+                    layer.surface.composite_tile(dst, tx, ty, opacity=layer.effective_opacity, mode=layer.compositeop)
+                B[(tx, ty)] = dst
+            return B[(tx, ty)]
+
+        s.get_bg_memory = get_bg_memory
+        split = self.brush.stroke_to (s, x, y, pressure, xtilt,ytilt, dtime)
+        s.end_atomic()
+        del s.get_bg_memory
 
         if split:
             self.split_stroke()
@@ -272,7 +294,6 @@ class Document():
 
         for layer in layers:
             surface = layer.surface
-            #surface.composite_tile_over(dst, tx, ty, mipmap_level=mipmap_level, opacity=layer.effective_opacity)
             surface.composite_tile(dst, tx, ty, mipmap_level=mipmap_level, opacity=layer.effective_opacity, mode=layer.compositeop)
 
         mypaintlib.tile_convert_rgb16_to_rgb8(dst, dst_8bit)
