@@ -166,6 +166,7 @@
       <menuitem action='PasteLayer'/>
       <menuitem action='RenameLayer'/>
       <menuitem action='ClearLayer'/>
+      <menuitem action='ConvertLayerToNormalMode'/>
       <menuitem action='RemoveLayer'/>
       <menuitem action='MergeLayer'/>
       <separator/>

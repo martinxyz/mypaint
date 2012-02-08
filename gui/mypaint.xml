@@ -437,6 +437,12 @@ Perhaps an increasing amount.
         <accelerator key="Delete" modifiers="GDK_SHIFT_MASK"/>
       </child>
       <child>
+        <object class="GtkAction" id="ConvertLayerToNormalMode">
+          <property name="label" translatable="yes">Convert Layer to Normal Mode</property>
+          <signal name="activate" handler="convert_layer_to_normal_mode_cb"/>
+        </object>
+      </child>
+      <child>
         <object class="GtkAction" id="IncreaseLayerOpacity">
           <property name="label" translatable="yes"
               >Increase Layer Opacity</property>

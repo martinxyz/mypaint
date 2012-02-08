@@ -214,6 +214,28 @@ class MergeLayer(Action):
         del self.dst_before
         self._notify_document_observers()
 
+class ConvertLayerToNormalMode(Action):
+    display_name = _("Convert Layer Mode")
+    def __init__(self, doc, layer):
+        self.doc = doc
+        self.layer = layer
+        self.set_normal_mode = SetLayerCompositeOp(doc, 'svg:src-over', layer)
+        self.set_opacity = SetLayerOpacity(doc, 1.0, layer)
+    def redo(self):
+        self.before = self.doc.layer.save_snapshot()
+        prev_idx = self.doc.layer_idx
+        self.doc.layer_idx = self.doc.layers.index(self.layer)
+        get_bg = self.doc.get_rendered_image_behind_current_layer
+        self.layer.convert_to_normal_mode(get_bg)
+        self.doc.layer_idx = prev_idx
+        self.set_normal_mode.redo()
+        self.set_opacity.redo()
+    def undo(self):
+        self.set_opacity.undo()
+        self.set_normal_mode.undo()
+        self.doc.layer.load_snapshot(self.before)
+        del self.before
+
 class AddLayer(Action):
     display_name = _("Add Layer")
     def __init__(self, doc, insert_idx=None, after=None, name=''):

@@ -388,6 +388,8 @@ class Document (CanvasController):
     def remove_layer_cb(self, action):
         self.model.remove_layer()
 
+    def convert_layer_to_normal_mode_cb(self, action):
+        self.model.convert_layer_to_normal_mode()
 
     def layer_bg_cb(self, action):
         idx = self.model.layer_idx - 1
@@ -431,7 +433,6 @@ class Document (CanvasController):
     def merge_layer_cb(self, action):
         if self.model.merge_layer_down():
             self.layerblink_state.activate(action)
-
 
     def toggle_layers_above_cb(self, action):
         self.tdw.toggle_show_layers_above()
