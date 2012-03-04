@@ -722,7 +722,15 @@ class CanvasRenderer(gtk.DrawingArea, DrawCursorMixin):
 
 
             dst = surface.get_tile_memory(tx, ty)
+
+            if self.current_layer_solo:
+                orig_op = self.doc.layer.compositeop
+                self.doc.layer.compositeop = "svg:src-over"
+
             self.doc.blit_tile_into(dst, False, tx, ty, mipmap_level, layers, background)
+
+            if self.current_layer_solo:
+                self.doc.layer.compositeop = orig_op
 
         if translation_only and not pygtkcompat.USE_GTK3:
             # not sure why, but using gdk directly is notably faster than the same via cairo
