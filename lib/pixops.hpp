@@ -7,6 +7,8 @@
  * (at your option) any later version.
  */
 
+#include "lut.h"
+
 // make the "heavy_debug" readable from python
 #ifdef HEAVY_DEBUG
 const bool heavy_debug = true;
@@ -409,8 +411,13 @@ static void precalculate_dithering_noise_if_required()
   }
 }
 
+
 // used mainly for saving layers (transparent PNG)
-void tile_convert_rgba16_to_rgba8(PyObject * src, PyObject * dst) {
+void
+tile_convert_linear_rgba16_to_nonlinear_rgba8 (PyObject *src,
+                                               PyObject *dst)
+
+{
   PyArrayObject* src_arr = ((PyArrayObject*)src);
   PyArrayObject* dst_arr = ((PyArrayObject*)dst);
 
@@ -461,6 +468,12 @@ void tile_convert_rgba16_to_rgba8(PyObject * src, PyObject * dst) {
       } else {
         r = g = b = 0;
       }
+
+      // Gamma-compress, for saving
+      r = lin2srgb[r];
+      g = lin2srgb[g];
+      b = lin2srgb[b];
+
 #ifdef HEAVY_DEBUG
       assert(a<=(1<<15));
       assert(r<=(1<<15));
@@ -475,7 +488,7 @@ void tile_convert_rgba16_to_rgba8(PyObject * src, PyObject * dst) {
       const uint32_t add_b = (1<<15)/2;
       const uint32_t add_a = (1<<15)/2;
       */
-      
+
       /*
       // Variant B) naive dithering
       // This can alter the alpha channel during a load->save cycle.
@@ -519,8 +532,13 @@ void tile_convert_rgba16_to_rgba8(PyObject * src, PyObject * dst) {
   }
 }
 
+
 // used after compositing (when displaying, or when saving solid PNG or JPG)
-void tile_convert_rgbu16_to_rgbu8(PyObject * src, PyObject * dst) {
+
+void
+tile_convert_linear_rgbu16_to_nonlinear_rgbu8 (PyObject *src,
+                                               PyObject *dst)
+{
   PyArrayObject* src_arr = ((PyArrayObject*)src);
   PyArrayObject* dst_arr = ((PyArrayObject*)dst);
 
@@ -559,14 +577,19 @@ void tile_convert_rgbu16_to_rgbu8(PyObject * src, PyObject * dst) {
       assert(g<=(1<<15));
       assert(b<=(1<<15));
 #endif
-      
+
+      // Gamma-compress, for saving or display
+      r = lin2srgb[r];
+      g = lin2srgb[g];
+      b = lin2srgb[b];
+
       /*
       // rounding
       const uint32_t add = (1<<15)/2;
       */
       // dithering
       const uint32_t add = dithering_noise[noise_idx++];
-      
+
       *dst_p++ = (r * 255 + add) / (1<<15);
       *dst_p++ = (g * 255 + add) / (1<<15);
       *dst_p++ = (b * 255 + add) / (1<<15);
@@ -581,7 +604,10 @@ void tile_convert_rgbu16_to_rgbu8(PyObject * src, PyObject * dst) {
 }
 
 // used mainly for loading layers (transparent PNG)
-void tile_convert_rgba8_to_rgba16(PyObject * src, PyObject * dst) {
+void
+tile_convert_nonlinear_rgba8_to_linear_rgba16 (PyObject *src,
+                                               PyObject *dst)
+{
   PyArrayObject* src_arr = ((PyArrayObject*)src);
   PyArrayObject* dst_arr = ((PyArrayObject*)dst);
 
@@ -618,6 +644,11 @@ void tile_convert_rgba8_to_rgba16(PyObject * src, PyObject * dst) {
       g = (g * (1<<15) + 255/2) / 255;
       b = (b * (1<<15) + 255/2) / 255;
       a = (a * (1<<15) + 255/2) / 255;
+
+      // Gamma-expand, since we're loading
+      r = srgb2lin[r];
+      g = srgb2lin[g];
+      b = srgb2lin[b];
 
       // premultiply alpha (with rounding), save back
       *dst_p++ = (r * a + (1<<15)/2) / (1<<15);

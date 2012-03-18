@@ -108,9 +108,9 @@ class FileHandler(object):
         (_("JPEG 90% quality (*.jpg; *.jpeg)"), '.jpg', {'quality': 90}), #5
         ]
         self.ext2saveformat = {
-        '.ora': SAVE_FORMAT_ORA, 
-        '.png': SAVE_FORMAT_PNGSOLID, 
-        '.jpeg': SAVE_FORMAT_JPEG, 
+        '.ora': SAVE_FORMAT_ORA,
+        '.png': SAVE_FORMAT_PNGSOLID,
+        '.jpeg': SAVE_FORMAT_JPEG,
         '.jpg': SAVE_FORMAT_JPEG}
         self.config2saveformat = {
         'openraster': SAVE_FORMAT_ORA,
@@ -390,7 +390,7 @@ class FileHandler(object):
     def open_scratchpad_dialog(self):
         dialog = gtk.FileChooserDialog(_("Open Scratchpad..."), self.app.drawWindow,
                                        gtk.FILE_CHOOSER_ACTION_OPEN,
-                                       (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,                            
+                                       (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                                         gtk.STOCK_OPEN, gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
 
@@ -418,7 +418,7 @@ class FileHandler(object):
                 self.app.scratchpad_filename = dialog.get_filename().decode('utf-8')
                 self.open_scratchpad(self.app.scratchpad_filename)
         finally:
-            dialog.destroy()  
+            dialog.destroy()
 
     def save_cb(self, action):
         if not self.filename:

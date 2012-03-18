@@ -6,7 +6,7 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 
-# This class converts between linear 8bit RGB(A) and tiled RGBA storage.
+# This class converts between flat 8bit RGB(A) and tiled RGBA storage.
 # It is used for rendering updates, but also for save/load.
 
 from gtk import gdk
@@ -15,10 +15,14 @@ from tiledsurface import N
 import sys, numpy
 
 class Surface:
+    """Wraps a gdk.Pixbuf, making its memory accessible by tile.
+
+    Pixbuf-surfaces use a gdk.Pixbuf (8 bit RGBU or RGBA data) for storage,
+    with memory also accessible per-tile, compatible with tiledsurface.Surface.
+    The RGB data is stored with gamma compression because pixbufs are designed
+    for immediate display.
     """
-    This class represents a gdk.Pixbuf (8 bit RGBU or RGBA data) with
-    memory also accessible per-tile, compatible with tiledsurface.Surface.
-    """
+
     def __init__(self, x, y, w, h, alpha=False, data=None):
         assert w>0 and h>0
         # We create and use a pixbuf enlarged to the tile boundaries internally.
@@ -84,12 +88,12 @@ class Surface:
         return self.tile_memory_dict[(tx, ty)]
 
     def blit_tile_into(self, dst, dst_has_alpha, tx, ty):
-        # (used mainly for loading transparent PNGs)
+        """Extracts linear rgba16 data, as used elsewhere.
+        """
         assert dst_has_alpha is True
         assert dst.dtype == 'uint16', '16 bit dst expected'
         src = self.tile_memory_dict[(tx, ty)]
-        assert src.shape[2] == 4, 'alpha required'
-        mypaintlib.tile_convert_rgba8_to_rgba16(src, dst)
+        mypaintlib.tile_convert_nonlinear_rgba8_to_linear_rgba16(src, dst)
 
 # throttle excesssive calls to the save/render feedback_cb
 TILES_PER_CALLBACK = 256

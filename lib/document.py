@@ -279,7 +279,7 @@ class Document():
                     opacity=layer.effective_opacity,
                     mode=layer.compositeop)
 
-        mypaintlib.tile_convert_rgbu16_to_rgbu8(dst, dst_8bit)
+        mypaintlib.tile_convert_linear_rgbu16_to_nonlinear_rgbu8(dst, dst_8bit)
 
     def add_layer(self, insert_idx=None, after=None, name=''):
         self.do(command.AddLayer(self, insert_idx, after, name))
@@ -300,7 +300,7 @@ class Document():
     def load_layer_from_pixbuf(self, pixbuf, x=0, y=0):
         arr = helpers.gdkpixbuf2numpy(pixbuf)
         s = tiledsurface.Surface()
-        s.load_from_numpy(arr, x, y)
+        s.load_from_nonlinear_rgb8_array(arr, x, y)
         self.do(command.LoadLayer(self, s))
 
     def load_layer_from_png(self, filename, x=0, y=0, feedback_cb=None):

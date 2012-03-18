@@ -138,7 +138,7 @@ class Surface(mypaintlib.TiledSurface):
             #dst[:] = 0 # <-- notably slower than memset()
             mypaintlib.tile_clear(dst)
         else:
-            mypaintlib.tile_convert_rgba16_to_rgba8(src, dst)
+            mypaintlib.tile_convert_linear_rgba16_to_nonlinear_rgba8(src, dst)
 
 
     def composite_tile(self, dst, dst_has_alpha, tx, ty, mipmap_level=0, opacity=1.0,
@@ -184,32 +184,32 @@ class Surface(mypaintlib.TiledSurface):
     def load_from_surface(self, other):
         self.load_snapshot(other.save_snapshot())
 
-    def _load_from_pixbufsurface(self, s):
-        dirty_tiles = set(self.tiledict.keys())
-        self.tiledict = {}
-
-        for tx, ty in s.get_tiles():
-            dst = self.get_tile_memory(tx, ty, readonly=False)
-            s.blit_tile_into(dst, True, tx, ty)
-
-        dirty_tiles.update(self.tiledict.keys())
-        bbox = get_tiles_bbox(dirty_tiles)
-        self.notify_observers(*bbox)
-
-    def load_from_numpy(self, arr, x, y):
+    def load_from_nonlinear_rgb8_array(self, arr, x, y):
+        """Loads nonlinear RGBA or RGBA uint8 data.
+        """
         assert arr.dtype == 'uint8'
         h, w, channels = arr.shape
         if channels == 3:
             if h > 512 or w > 512:
                 # this happens when loading JPEG
-                print 'WARNING: tiledsurface.py load_from_numpy: converting %dx%d array from RGB to RGBU, this could be avoided' % (w, h)
+                print 'WARNING:tiledsurface:load_from_nonlinear_rgb8_numpy: '\
+                  'converting %dx%d array from RGB to RGBU, this could be '\
+                  'avoided' % (w, h)
             arr2 = empty((h, w, 4), dtype='uint8')
             arr2[:,:,:3] = arr
             arr2[:,:,3] = 255
             s = pixbufsurface.Surface(x, y, w, h, alpha=False, data=arr2)
         else:
             s = pixbufsurface.Surface(x, y, w, h, alpha=True, data=arr)
-        self._load_from_pixbufsurface(s)
+        # Replace current data.
+        dirty_tiles = set(self.tiledict.keys())
+        self.tiledict = {}
+        for tx, ty in s.get_tiles():
+            dst = self.get_tile_memory(tx, ty, readonly=False)
+            s.blit_tile_into(dst, True, tx, ty)
+        dirty_tiles.update(self.tiledict.keys())
+        bbox = get_tiles_bbox(dirty_tiles)
+        self.notify_observers(*bbox)
 
     def load_from_png(self, filename, x, y, feedback_cb=None):
         """Load from a PNG, one tilerow at a time, discarding empty tiles.
@@ -257,7 +257,7 @@ class Surface(mypaintlib.TiledSurface):
                 src = state['buf'][:,i*N:(i+1)*N,:]
                 if src[:,:,3].any():
                     dst = self.get_tile_memory(tx, ty, readonly=False)
-                    mypaintlib.tile_convert_rgba8_to_rgba16(src, dst)
+                    mypaintlib.tile_convert_nonlinear_rgba8_to_linear_rgba16(src, dst)
 
         filename_sys = filename.encode(sys.getfilesystemencoding()) # FIXME: should not do that, should use open(unicode_object)
         mypaintlib.load_png_fast_progressive(filename_sys, get_buffer)

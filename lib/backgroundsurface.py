@@ -16,31 +16,60 @@ import pixbufsurface
 class BackgroundError(Exception):
     pass
 
+
 class Background:
+    """A background surface.
+
+    Internally, the tiles use uint16 linear light.
+    """
+
     def __init__(self, obj, mipmap_level=0):
+        """Constructs from a pixbuf, an rgb triple, or a numpy array.
+
+        `obj` is either a ``gdk.Pixbuf``, an RGB triple whose elements range
+        from 0 to 255, or a ``numpy.ndarray``. The array case is used
+        internally along with `mipmap_level` when generating mipmaps.
+        """
+        gamma_expand = False
         if isinstance(obj, gdk.Pixbuf):
             obj = helpers.gdkpixbuf2numpy(obj)
+            gamma_expand = True
         elif not isinstance(obj, numpy.ndarray):
             r, g, b = obj
             obj = numpy.zeros((N, N, 3), dtype='uint8')
             obj[:,:,:] = r, g, b
+            # Assume linear. Similarly, any numpy arrays passed in
+            # are assumed to be already linear.
 
-        self.tw = obj.shape[1]/N
-        self.th = obj.shape[0]/N
+        h, w = obj.shape[0:2]
+        self.tw = w/N
+        self.th = h/N
         #print obj
         if obj.shape[0:2] != (self.th*N, self.tw*N):
-            raise BackgroundError, 'unsupported background tile size: %dx%d' % (obj.shape[0], obj.shape[1])
-        if obj.dtype == 'uint8':
+            raise BackgroundError, 'unsupported background tile size: %dx%d' \
+              % (w, h)
+
+        if gamma_expand:
+            tmp_obj = numpy.empty((h, w, 4), dtype='uint8')
+            tmp_obj[:,:,:3] = obj
+            tmp_obj[:,:,3] = 255
+            obj = pixbufsurface.Surface(0, 0, w, h, alpha=False, data=tmp_obj)
+            del tmp_obj
+        elif obj.dtype == 'uint8':
             obj = (obj.astype('uint32') * (1<<15) / 255).astype('uint16')
 
+        # Populate tiles
         self.tiles = {}
         for ty in range(self.th):
             for tx in range(self.tw):
-                # make sure we have linear memory (optimization)
                 tile = numpy.empty((N, N, 4), dtype='uint16') # rgbu
-                tile[:,:,:3] = obj[N*ty:N*(ty+1), N*tx:N*(tx+1), :3]
+                if gamma_expand:
+                    obj.blit_tile_into(tile, True, tx, ty)
+                else:
+                    tile[:,:,:3] = obj[N*ty:N*(ty+1), N*tx:N*(tx+1), :3]
                 self.tiles[tx, ty] = tile
-        
+        del obj
+
         # generate mipmap
         self.mipmap_level = mipmap_level
         if mipmap_level < MAX_MIPMAP_LEVEL:
@@ -73,7 +102,7 @@ class Background:
             # does help much to cache this conversion result. The
             # save_ora speedup when doing this is below 1%, even for a
             # single-layer ora.
-            mypaintlib.tile_convert_rgbu16_to_rgbu8(rgbu, dst)
+            mypaintlib.tile_convert_linear_rgbu16_to_nonlinear_rgbu8(rgbu, dst)
 
     def get_pattern_bbox(self):
         return get_tiles_bbox(self.tiles)
