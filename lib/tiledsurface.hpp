@@ -10,6 +10,8 @@
 #define TILE_SIZE 64
 #define MAX_MIPMAP_LEVEL 4
 
+#include "lut.h"
+
 // used for symmetrical mirroring, set by global_symmetry_toggle(axis).
 // Global to affect all surfaces.
 bool surface_do_symmetry = false;
@@ -252,9 +254,9 @@ public:
     color_b = CLAMP(color_b, 0.0, 1.0);
     color_a = CLAMP(color_a, 0.0, 1.0);
 
-    uint16_t color_r_ = color_r * (1<<15);
-    uint16_t color_g_ = color_g * (1<<15);
-    uint16_t color_b_ = color_b * (1<<15);
+    uint16_t color_r_ = srgb2lin[(int)(color_r * (1<<15))];
+    uint16_t color_g_ = srgb2lin[(int)(color_g * (1<<15))];
+    uint16_t color_b_ = srgb2lin[(int)(color_b * (1<<15))];
 
     // blending mode preparation
     float normal = 1.0;
