@@ -199,7 +199,6 @@ class Surface(mypaintlib.TiledSurface):
     def load_from_numpy(self, arr, x, y):
         assert arr.dtype == 'uint8'
         h, w, channels = arr.shape
-        print 'load_from_numpy', arr.shape
         s = pixbufsurface.Surface(x, y, w, h, data=arr)
         self._load_from_pixbufsurface(s)
         return (x, y, w, h)
@@ -255,9 +254,10 @@ class Surface(mypaintlib.TiledSurface):
                     mypaintlib.tile_convert_nonlinear_rgba8_to_linear_rgba16(src, dst)
 
         filename_sys = filename.encode(sys.getfilesystemencoding()) # FIXME: should not do that, should use open(unicode_object)
-        mypaintlib.load_png_fast_progressive(filename_sys, get_buffer)
+        flags = mypaintlib.load_png_fast_progressive(filename_sys, get_buffer)
         consume_buf() # also process the final chunk of data
-        
+        print flags
+
         dirty_tiles.update(self.tiledict.keys())
         bbox = get_tiles_bbox(dirty_tiles)
         self.notify_observers(*bbox)
