@@ -53,7 +53,7 @@ class Background:
             tmp_obj = numpy.empty((h, w, 4), dtype='uint8')
             tmp_obj[:,:,:3] = obj
             tmp_obj[:,:,3] = 255
-            obj = pixbufsurface.Surface(0, 0, w, h, alpha=False, data=tmp_obj)
+            obj = pixbufsurface.Surface(0, 0, w, h, data=tmp_obj)
             del tmp_obj
         elif obj.dtype == 'uint8':
             obj = (obj.astype('uint32') * (1<<15) / 255).astype('uint16')

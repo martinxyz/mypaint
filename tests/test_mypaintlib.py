@@ -25,7 +25,7 @@ def tileConversions():
 def layerModes():
     N = mypaintlib.TILE_SIZE
 
-    dst = zeros((N, N, 3), 'uint16')
+    dst = zeros((N, N, 4), 'uint16') # rgbu
     dst_values = []
     r1 = range(0, 20)
     r2 = range((1<<15)/2-10, (1<<15)/2+10)
@@ -65,24 +65,22 @@ def layerModes():
     for name in dir(mypaintlib):
         if not name.startswith('tile_composite_'):
             continue
-        junk1, junk2, src_format, mode, dst_format = name.split('_')
-        if src_format == 'rgba16' and dst_format == 'rgb16':
-            print 'testing', name, 'for invalid output'
-            f = getattr(mypaintlib, name)
-            for dst_value in dst_values:
-                for alpha in [1.0, 0.999, 0.99, 0.90, 0.51, 0.50, 0.49, 0.01, 0.001, 0.0]:
-                    dst[:] = dst_value
-                    alpha = 1.0
-                    f(src, dst, alpha)
-                    #imshow(dst[:,:,0], interpolation='nearest')
-                    #gray()
-                    #colorbar()
-                    #show()
-                    errors = dst > (1<<15)
-                    assert not errors.any()
-            print 'passed'
-        else:
-            print 'not testing', name
+        junk1, junk2, mode = name.split('_', 2)
+        print 'testing', name, 'for invalid output'
+        f = getattr(mypaintlib, name)
+        for dst_value in dst_values:
+            for alpha in [1.0, 0.999, 0.99, 0.90, 0.51, 0.50, 0.49, 0.01, 0.001, 0.0]:
+                dst[:] = dst_value
+                dst_has_alpha = False
+                src_opacity = alpha
+                f(src, dst, dst_has_alpha, src_opacity)
+                #imshow(dst[:,:,0], interpolation='nearest')
+                #gray()
+                #colorbar()
+                #show()
+                errors = dst > (1<<15)
+                assert not errors.any()
+        print 'passed'
 
 def directPaint():
 
@@ -272,6 +270,32 @@ def docPaint():
     assert pngs_equal('test_docPaint_flat.png', 'correct_docPaint_flat.png')
     assert pngs_equal('test_docPaint_alpha.png', 'correct_docPaint_alpha.png')
 
+def saveFrame():
+    print 'test-saving various frame sizes...'
+    cnt=0
+    doc = document.Document()
+    #doc.load('bigimage.ora')
+    doc.set_frame_enabled(True)
+    s = tiledsurface.Surface()
+
+    N = mypaintlib.TILE_SIZE
+    positions = range(-1, +2) + range(-N-1, -N+2) + range(+N-1, +N+2)
+    for x1 in positions:
+        for x2 in positions:
+            for y1 in positions:
+                for y2 in positions:
+                    if x2 <= x1 or y2 <= y1:
+                        continue
+                    cnt += 1
+                    x, y, w, h = x1, y1, x2-x1, y2-y1
+                    #print x, y, w, h
+                    s.save_as_png('test_saveFrame_s.png', x, y, w, h)
+                    doc.set_frame(x=x, y=y, width=w, height=h)
+                    #doc.save('test_saveFrame_doc_%dx%d.png' % (w,h))
+                    doc.save('test_saveFrame_doc.png')
+                    doc.save('test_saveFrame_doc.jpg')
+    print 'checked', cnt, 'different rectangles'
+
 from optparse import OptionParser
 parser = OptionParser('usage: %prog [options]')
 options, tests = parser.parse_args()
@@ -281,5 +305,6 @@ layerModes()
 directPaint()
 brushPaint()
 docPaint()
+saveFrame()
 
 print 'Tests passed.'
