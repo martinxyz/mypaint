@@ -631,19 +631,19 @@ void tile_flat2rgba(PyObject * dst, PyObject * bg) {
   for (int i=0; i<TILE_SIZE*TILE_SIZE; i++) {
 
     // 1. calculate final dst.alpha
-    uint16_t final_alpha = dst_p[3];
+    uint16_t final_alpha = 0;
     for (int i=0; i<3;i++) {
       int32_t color_change = (int32_t)dst_p[i] - bg_p[i];
-      uint16_t minimal_alpha;
-      if (color_change > 0) {
-        minimal_alpha = (int64_t)color_change*(1<<15) / ((1<<15) - bg_p[i]);
-      } else if (color_change < 0) {
-        minimal_alpha = (int64_t)-color_change*(1<<15) / bg_p[i];
+      const uint16_t small_change = 0;
+      if (color_change > small_change) {
+        final_alpha = MAX(final_alpha, (int64_t)color_change*(1<<15) / ((1<<15) - bg_p[i]));
+      } else if (color_change < small_change) {
+        final_alpha = MAX(final_alpha, (int64_t)-color_change*(1<<15) / bg_p[i]);
       } else {
-        // color_change == 0
-        minimal_alpha = 0;
+        // color_change == 0; no need to increment alpha
       }
-      final_alpha = MAX(final_alpha, minimal_alpha);
+
+      final_alpha = MAX(final_alpha, dst_p[3]);
 #ifdef HEAVY_DEBUG
       assert(final_alpha <= (1<<15));
 #endif
@@ -657,9 +657,13 @@ void tile_flat2rgba(PyObject * dst, PyObject * bg) {
         //int64_t res = bg_p[i] + (int64_t)color_change*(1<<15) / final_alpha;
         // premultiplied with final_alpha
         int64_t res = (uint32_t)bg_p[i]*final_alpha/(1<<15) + (int64_t)color_change;
+        /*
+          just clamp (if change was forced to zero)
         assert(res <= (1<<15));
         assert(res >= -1);
         res = CLAMP(res, 0, (1<<15)); // fixme: better handling of rounding errors maybe?
+        */
+        res = CLAMP(res, 0, final_alpha);
         // Also, the result ist probably often exact zero or exact
         // (1<<15), why are we even (re)calculating those...?
         dst_p[i] = res;

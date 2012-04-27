@@ -239,6 +239,9 @@ class Layer:
         result will look as if it were composited with the current
         blending mode.
         """
+        if self.compositeop ==  "svg:src-over" and self.effective_opacity == 1.0:
+            return # optimization for merging layers
+
         N = tiledsurface.N
         tmp = empty((N, N, 4), dtype='uint16')
         for tx, ty in self._surface.get_tiles():
@@ -248,9 +251,21 @@ class Layer:
             self.composite_tile(tmp, False, tx, ty)
             # overwrite layer data with composited result
             dst = self._surface.get_tile_memory(tx, ty, readonly=False)
-            mypaintlib.tile_copy_rgba16_into_rgba16(tmp, dst)
+
+            variant = 'minimize_alpha'
+            #variant = 'preserve_alpha'
+            #variant = 'preserve_alpha_partially'
+            if variant == 'preserve_alpha':
+                dst[:,:,:3] = tmp[:,:,:3] # copy color, preserve alpha
+            elif variant == 'preserve_alpha_partially':
+                dst[:,:,:3] = tmp[:,:,:3] # copy color, preserve alpha
+                dst[:,:,3] /= 4 # reduce alpha
+            else:
+                # don't use original alpha
+                mypaintlib.tile_copy_rgba16_into_rgba16(tmp, dst)
+                dst[:,:,3] = 0 # minimize alpha
+
             # recalculate layer in normal mode
-            dst[:,:,3] = 0 # minimize alpha
             mypaintlib.tile_flat2rgba(dst, bg)
 
     def get_stroke_info_at(self, x, y):
